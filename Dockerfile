@@ -1,24 +1,20 @@
 # Use an official Python runtime as a parent image
-FROM python:3.11
+FROM python:3.9
 
-# Set the working directory
+# Set the working directory in the container
 WORKDIR /app
 
-# Copy the application files
-COPY . /app
+# Copy the requirements file into the container
+COPY requirements.txt .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install and configure Nginx
-RUN apt update && apt install -y nginx && rm -rf /var/lib/apt/lists/*
+# Copy the application code into the container
+COPY . .
 
-# Copy Nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY app.conf /etc/nginx/sites-available/default
+# Expose the port FastAPI runs on
+EXPOSE 8000
 
-# Expose the necessary ports
-EXPOSE 80
-
-# Start Nginx and the application
-CMD service nginx start && uvicorn main:app --host 0.0.0.0 --port 8000
+# Command to run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
