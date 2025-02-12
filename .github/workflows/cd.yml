@@ -1,13 +1,16 @@
-name: CD Pipeline
+name: Deploy FastAPI App
+
 on:
   push:
-    branches: [main]
+    branches:
+      - main  # Runs this workflow when changes are pushed to the main branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
       - name: Deploy via SSH
@@ -17,42 +20,24 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Update package index and install dependencies
-            sudo apt-get update -y
-            sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+            # Navigate to the home directory
+            cd /home/ubuntu
 
-            # Add Docker's official GPG key
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-            sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-
-            # Install Docker
-            sudo apt-get update -y
-            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-
-            # Add the SSH user to the Docker group
-            sudo usermod -aG docker ${{ secrets.SSH_USERNAME }}
-
-            # Install Docker Compose
-            sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            sudo chmod +x /usr/local/bin/docker-compose
-
-            # Verify installations
-            docker --version
-            docker-compose --version
-
-            # Navigate to the project directory and deploy
-            cd /home/ubuntu/
-            
-            # Clone the repository if it doesn't exist
-            if [ ! -d "fastapi-book-project" ]; then
-                git clone https://github.com/private-blaq/fastapi-book-project.git
+            # Clone or pull latest changes
+            if [ -d "fastapi-book-project" ]; then
+              cd fastapi-book-project
+              git reset --hard origin/main  # Ensure clean state
+              git pull origin main
+            else
+              git clone https://github.com/private-blaq/fastapi-book-project.git
+              cd fastapi-book-project
             fi
-            
-            cd fastapi-book-project/
-            git pull origin main
 
-            # Ensure correct permissions
-            sudo chown -R $USER:$USER .
+            # Ensure Docker and dependencies are installed
+            sudo apt update && sudo apt install -y docker.io docker-compose
 
-            # Deploy using Docker Compose
+            # Stop and remove existing containers if running
+            docker-compose down || true
+
+            # Start the application using Docker Compose
             docker-compose up -d --build
