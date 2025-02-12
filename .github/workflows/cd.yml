@@ -36,8 +36,6 @@ jobs:
             # Ensure Docker and dependencies are installed
             sudo apt update && sudo apt install -y docker.io docker-compose
 
-            # Stop and remove existing containers if running
-            docker-compose down || true
 
             # Start the application using Docker Compose
-            docker-compose up -d --build
+            sudo docker-compose up -d --build
